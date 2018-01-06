@@ -1,0 +1,31 @@
+syntax = "proto3";
+package main;
+option java_package = "com.emsihyo.game_gate";
+option java_outer_classname = "GAME_GATE";
+option java_generate_equals_and_hash = true;
+option objc_class_prefix = "GAME_GATE";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// option (gogoproto.gostring_all) = true;
+// option (gogoproto.marshaler_all) = true;
+// option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.stringer_all) =  true;
+
+
+message Publish {
+  string Subject = 1;//gamename.action
+  bytes  Data    = 2;
+}
+
+message Request {
+  string Subject = 1;
+  bytes  Data    = 2;
+}
+
+message Response {
+  string Err  = 1;
+  bytes  Data = 2;
+}
+
