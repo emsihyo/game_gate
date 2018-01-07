@@ -13,19 +13,57 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 option (gogoproto.goproto_stringer_all) = false;
 option (gogoproto.stringer_all) =  true;
 
+enum SubjectID{
+  SessionDidConnect    = 0;
+  SessionDidDisconnect = 1;
+  
+}
 
+message Empty{
+
+}
+//client to gate
 message Publish {
   string Subject = 1;//gamename.action
   bytes  Data    = 2;
 }
-
+//client to gate
 message Request {
   string Subject = 1;
   bytes  Data    = 2;
 }
-
+//gate to client
 message Response {
   string Err  = 1;
   bytes  Data = 2;
 }
+//gate to client
+message Notice {
+  string Subject = 1;
+  bytes  Data    = 2;
+}
+
+//gate to agent
+message Connect {
+  string ID   = 1;//session id
+  string Gate = 2;
+}
+
+//gate to agent
+message Disconnect {
+  string ID   = 1;//session id
+  string Gate = 2;
+}
+
+//agent to gate
+message JoinRoom {
+  string ID   = 1;//session id
+  string Room = 2;
+}
+//agent to gate
+message LeaveRoom {
+  string ID   = 1;//session id
+  string Room = 2;
+}
+
 

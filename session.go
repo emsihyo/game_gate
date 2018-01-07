@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nats-io/go-nats"
+
 	"github.com/emsihyo/bi"
 )
 
@@ -13,6 +15,7 @@ type Session struct {
 	UserID string
 	topics map[string]string
 	mut    sync.Mutex
+	Sub    *nats.Subscription
 }
 
 //NewSession NewSession
