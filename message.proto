@@ -13,57 +13,95 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 option (gogoproto.goproto_stringer_all) = false;
 option (gogoproto.stringer_all) =  true;
 
-enum SubjectID{
-  SessionDidConnect    = 0;
-  SessionDidDisconnect = 1;
-  
+enum G2A{
+  SessionDidConnect    = 0; 
+  SessionDidDisconnect = 1;  
 }
 
-message Empty{
+enum A2G{
+  Kick      = 0;
+  Event     = 1;
+  Request   = 2;
+  JoinRoom  = 3;
+  LeaveRoom = 4;
+}
 
-}
-//client to gate
-message Publish {
-  string Subject = 1;//gamename.action
-  bytes  Data    = 2;
-}
-//client to gate
-message Request {
-  string Subject = 1;
-  bytes  Data    = 2;
-}
-//gate to client
-message Response {
-  string Err  = 1;
-  bytes  Data = 2;
-}
-//gate to client
-message Notice {
-  string Subject = 1;
-  bytes  Data    = 2;
+//empty resp
+message RespEmpty{
+
 }
 
 //gate to agent
-message Connect {
-  string ID   = 1;//session id
-  string Gate = 2;
-}
-
-//gate to agent
-message Disconnect {
+message ReqConnect {
   string ID   = 1;//session id
   string Gate = 2;
 }
 
 //agent to gate
-message JoinRoom {
+message RespConnect {
+  int32  code = 1;
+  string desc = 2;
+}
+
+message ReqDisconnect {
+  string ID   = 1;//session id
+  string Gate = 2;
+}
+
+message RespDisconnect {
+  int32  code = 1;
+  string desc = 2;
+}
+
+message ReqKick {
+  string ID = 1;//session id
+}
+
+message RespKick {
+  int32  code = 1;
+  string desc = 2;
+}
+
+message ReqEvent {
+  string ID   = 1;//session id
+  bytes  data = 2;
+}
+
+message RespEvent {
+  int32  code = 1;
+  string desc = 2;
+}
+
+message ReqRequest {
+  string ID   = 1;//session id
+  bytes  data = 2;
+}
+
+message RespRequest {
+  int32  code = 1;
+  string desc = 2;
+  bytes  data = 3;
+}
+
+message ReqJoinRoom {
   string ID   = 1;//session id
   string Room = 2;
 }
-//agent to gate
-message LeaveRoom {
+
+message RespJoinRoom{
+  int32  code = 1;
+  string desc = 2;
+  bytes  data = 3;
+}
+
+message ReqLeaveRoom {
   string ID   = 1;//session id
   string Room = 2;
+}
+
+message RespLeaveRoom {
+  int32  code = 1;
+  string desc = 2;
 }
 
 

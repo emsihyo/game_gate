@@ -4,16 +4,15 @@ import (
 	"time"
 
 	"github.com/emsihyo/bi"
-	proto "github.com/gogo/protobuf/proto"
 	nats "github.com/nats-io/go-nats"
 )
 
 //Gate Gate
 type Gate struct {
 	bi.BI
-	id  string
-	ns  *Nats
-	sub *nats.Subscription
+	id     string
+	ns     *Nats
+	sesses map[string]*Session
 }
 
 //NewGate NewGate
@@ -24,50 +23,82 @@ func NewGate() *Gate {
 
 func (gate *Gate) init() {
 	id := gate.id
-	idx := len(id) + 1
 	var err error
-	gate.sub, err = gate.ns.Subscribe3(id+".*", idx, func(method string, v interface{}) {
-		switch method {
-		case ""
-		}
-	})
+	_, err = gate.ns.Subscribe1(id, A2G_Kick.String(), gate.reqKick)
+	if nil != err {
+		panic(err)
+	}
+	_, err = gate.ns.Subscribe1(id, A2G_Event.String(), gate.reqEvent)
+	if nil != err {
+		panic(err)
+	}
+	_, err = gate.ns.Subscribe2(id, A2G_Request.String(), gate.reqRequest)
+	if nil != err {
+		panic(err)
+	}
+	_, err = gate.ns.Subscribe2(id, A2G_JoinRoom.String(), gate.reqJoinRoom)
+	if nil != err {
+		panic(err)
+	}
+	_, err = gate.ns.Subscribe2(id, A2G_LeaveRoom.String(), gate.reqLeaveRoom)
 	if nil != err {
 		panic(err)
 	}
 	gate.On(bi.Connection, gate.sessionDidConnected)
 	gate.On(bi.Disconnection, gate.sessionDidDisconnected)
-	gate.On("publish", gate.sessionWillPublish)
-	gate.On("request", gate.sessionWillRequest)
+
 }
 
 func (gate *Gate) sessionDidConnected(sess *Session) {
 	id := sess.GetID()
-	err := gate.ns.Request2(SubjectID_SessionDidConnect.String(), &Connect{ID: id, Gate: gate.id}, nil, time.Second*5)
-	if nil == err {
-		idx := len(id) + 1
-		sess.Sub, err = gate.ns.Subscribe2(id+".*", idx, func(method string, data []byte) {
-			//notice
-			// sess.MarshalledEvent(data)
-		})
+	err := gate.ns.Request1(G2A_SessionDidConnect.String(), &ReqConnect{ID: id, Gate: gate.id}, &RespConnect{}, time.Second*5)
+	if nil != err {
+
 	}
 }
 
 func (gate *Gate) sessionDidDisconnected(sess *Session) {
 	id := sess.GetID()
-	nc, err := nats.Connect(nats.DefaultURL)
-	if nil == err {
-		msg := &Disconnect{ID: id, Gate: gate.id}
-		v, _ := proto.Marshal(msg)
-		nc.Publish(SubjectID_SessionDidDisconnect.String(), v)
+	err := gate.ns.Request1(G2A_SessionDidConnect.String(), &ReqDisconnect{ID: id, Gate: gate.id}, &RespDisconnect{}, time.Second*5)
+	if nil != err {
+
 	}
-	sess.Sub.Unsubscribe()
 }
 
-func (gate *Gate) sessionWillPublish(sess *Session, msg *Publish) {
-	gate.ns.Publish1(msg.Subject, msg.Data)
+func (gate *Gate) reqEvent(req interface{}) {
+	reqEvent := req.(*ReqEvent)
+	sess, ok := gate.sesses[reqEvent.ID]
+	if ok {
+		sess.Event("event", &reqEvent.Data, nil)
+	}
 }
 
-func (gate *Gate) sessionWillRequest(sess *Session, req *Request) *Response {
-	data, err := gate.ns.Request1(req.Subject, req.Data, time.Second*5)
-	return &Response{Err: err.Error(), Data: data}
+func (gate *Gate) reqRequest(req interface{}) interface{} {
+	resp := RespRequest{}
+	reqEvent := req.(*ReqEvent)
+	sess, ok := gate.sesses[reqEvent.ID]
+	if ok {
+		respBytes := []byte{}
+		err := sess.Event("event", &reqEvent.Data, &respBytes)
+		resp.Data = respBytes
+		if nil != err {
+			resp.Code = 1
+			resp.Desc = err.Error()
+		} else {
+			resp.Code = 0
+		}
+	}
+	return &resp
+}
+
+func (gate *Gate) reqKick(req interface{}) {
+
+}
+
+func (gate *Gate) reqJoinRoom(req interface{}) interface{} {
+	return nil
+}
+
+func (gate *Gate) reqLeaveRoom(req interface{}) interface{} {
+	return nil
 }

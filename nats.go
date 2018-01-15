@@ -21,17 +21,7 @@ func NewNats(url string, concurrence int, protocol bi.Protocol) *Nats {
 }
 
 //Publish1 Publish1
-func (n *Nats) Publish1(subject string, data []byte) error {
-	nc, err := n.Get()
-	if nil == err {
-		nc.Publish(subject, data)
-	}
-	n.Put(nc)
-	return err
-}
-
-//Publish2 Publish2
-func (n *Nats) Publish2(subject string, v interface{}) error {
+func (n *Nats) Publish1(subject string, v interface{}) error {
 	nc, err := n.Get()
 	if nil == err {
 		var data []byte
@@ -45,22 +35,7 @@ func (n *Nats) Publish2(subject string, v interface{}) error {
 }
 
 //Request1 Request1
-func (n *Nats) Request1(subject string, data []byte, timeout time.Duration) ([]byte, error) {
-	nc, err := n.Get()
-	var resp []byte
-	if nil == err {
-		var m *nats.Msg
-		m, err = nc.Request(subject, data, timeout)
-		if nil == err {
-			resp = m.Data
-		}
-	}
-	n.Put(nc)
-	return resp, err
-}
-
-//Request2 Request2
-func (n *Nats) Request2(subject string, req interface{}, resp interface{}, timeout time.Duration) error {
+func (n *Nats) Request1(subject string, req interface{}, resp interface{}, timeout time.Duration) error {
 	nc, err := n.Get()
 	if nil == err {
 		var data []byte
@@ -81,12 +56,12 @@ func (n *Nats) Request2(subject string, req interface{}, resp interface{}, timeo
 }
 
 //Subscribe1 Subscribe1
-func (n *Nats) Subscribe1(subject string, f func(v interface{})) (*nats.Subscription, error) {
-	var sub *nats.Subscription
-	nc, err := n.Get()
+func (n *Nats) Subscribe1(id string, method string, f func(v interface{})) (sub *nats.Subscription, err error) {
+	var nc *nats.Conn
+	nc, err = n.Get()
 	if nil == err {
-		nc.Subscribe(subject, func(m *nats.Msg) {
-			v := reflect.New(reflect.TypeOf(f).In(0).Elem()).Interface()
+		sub, err = nc.Subscribe(id+"."+method, func(m *nats.Msg) {
+			v := reflect.New(reflect.TypeOf(f).In(1).Elem()).Interface()
 			f(v)
 		})
 	}
@@ -95,41 +70,16 @@ func (n *Nats) Subscribe1(subject string, f func(v interface{})) (*nats.Subscrip
 }
 
 //Subscribe2 Subscribe2
-func (n *Nats) Subscribe2(subject string, offset int, f func(method string, data []byte)) (*nats.Subscription, error) {
-	var sub *nats.Subscription
-	nc, err := n.Get()
+func (n *Nats) Subscribe2(id string, method string, f func(v interface{}) interface{}) (sub *nats.Subscription, err error) {
+	var nc *nats.Conn
+	nc, err = n.Get()
 	if nil == err {
-		nc.Subscribe(subject, func(m *nats.Msg) {
-			f(subject[offset:], m.Data)
-		})
-	}
-	n.Put(nc)
-	return sub, err
-}
-
-//Subscribe3 Subscribe3
-func (n *Nats) Subscribe3(subject string, offset int, f func(method string, v interface{})) (*nats.Subscription, error) {
-	var sub *nats.Subscription
-	nc, err := n.Get()
-	if nil == err {
-		nc.Subscribe(subject, func(m *nats.Msg) {
+		sub, err = nc.Subscribe(id+"."+method, func(m *nats.Msg) {
 			v := reflect.New(reflect.TypeOf(f).In(1).Elem()).Interface()
-			f(subject[offset:], v)
-		})
-	}
-	n.Put(nc)
-	return sub, err
-}
-
-//Subscribe4 Subscribe4
-func (n *Nats) Subscribe4(subject string, offset int, f func(method string, v interface{}) interface{}) (*nats.Subscription, error) {
-	var sub *nats.Subscription
-	nc, err := n.Get()
-	if nil == err {
-		nc.Subscribe(subject, func(m *nats.Msg) {
-			v := reflect.New(reflect.TypeOf(f).In(1).Elem()).Interface()
-			data, _ := n.protocol.Marshal(f(subject[offset:], v))
-			nc.Publish(m.Reply, data)
+			data, _ := n.protocol.Marshal(f(v))
+			if 0 < len(m.Reply) {
+				nc.Publish(m.Reply, data)
+			}
 		})
 	}
 	n.Put(nc)
